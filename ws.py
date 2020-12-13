@@ -98,7 +98,6 @@ class WSServer:
 	def _handle(self,cs,a):
 		threading.current_thread()._cs_q=[]
 		threading.current_thread()._e=False
-		sc=type("tmp",(object,),{})()
 		r_hs=False
 		r_hl=bytearray()
 		r_f=0
@@ -109,14 +108,13 @@ class WSServer:
 		r_l=0
 		r_ll=None
 		r_i=0
-		sc.frag_start=False
-		sc.frag_type=BINARY
-		sc.frag_buffer=None
-		sc.frag_decoder=codecs.getincrementaldecoder("utf-8")(errors="strict")
 		r_s=0
+		r_fs=False
+		r_ft=BINARY
+		r_fb=None
+		r_fd=codecs.getincrementaldecoder("utf-8")(errors="strict")
 		while (self.e==False):
 			try:
-				self_=sc
 				if (r_hs is False):
 					dt=cs.recv(2048)
 					if (not dt):
@@ -271,41 +269,41 @@ class WSServer:
 										if (r_t!=STREAM):
 											if (r_t==PING or r_t==PONG):
 												raise Exception("Control messages can't be fragmented")
-											self_.frag_type=r_t
-											self_.frag_start=True
-											self_.frag_decoder.reset()
-											if (self_.frag_type==TEXT):
-												self_.frag_buffer=[]
-												utf_str=self_.frag_decoder.decode(r_dt,final=False)
+											r_ft=r_t
+											r_fs=True
+											r_fd.reset()
+											if (r_ft==TEXT):
+												r_fb=[]
+												utf_str=r_fd.decode(r_dt,final=False)
 												if (utf_str):
-													self_.frag_buffer.append(utf_str)
+													r_fb.append(utf_str)
 											else:
-												self_.frag_buffer=bytearray()
-												self_.frag_buffer.extend(r_dt)
+												r_fb=bytearray()
+												r_fb.extend(r_dt)
 										else:
-											if (self_.frag_start is False):
+											if (r_fs is False):
 												raise Exception("Fragmentation protocol error")
-											if (self_.frag_type==TEXT):
-												utf_str=self_.frag_decoder.decode(r_dt,final=False)
+											if (r_ft==TEXT):
+												utf_str=r_fd.decode(r_dt,final=False)
 												if (utf_str):
-													 self_.frag_buffer.append(utf_str)
+													 r_fb.append(utf_str)
 											else:
-												self_.frag_buffer.extend(r_dt)
+												r_fb.extend(r_dt)
 									elif (r_t==STREAM):
-										if (self_.frag_start is False):
+										if (r_fs is False):
 											raise Exception("Fragmentation protocol error")
-										if (self_.frag_type==TEXT):
-											utf_str=self_.frag_decoder.decode(r_dt,final=True)
-											self_.frag_buffer.append(utf_str)
-											r_dt="".join(self_.frag_buffer)
+										if (r_ft==TEXT):
+											utf_str=r_fd.decode(r_dt,final=True)
+											r_fb.append(utf_str)
+											r_dt="".join(r_fb)
 										else:
-											self_.frag_buffer.extend(r_dt)
-											r_dt=self_.frag_buffer
+											r_fb.extend(r_dt)
+											r_dt=r_fb
 										self.cf(self,r_dt)
-										self_.frag_decoder.reset()
-										self_.frag_type=BINARY
-										self_.frag_start=False
-										self_.frag_buffer=None
+										r_fd.reset()
+										r_ft=BINARY
+										r_fs=False
+										r_fb=None
 									elif (r_t==PING):
 										if (isinstance(r_dt,str)):
 											r_dt=r_dt.encode("utf-8")
@@ -314,11 +312,11 @@ class WSServer:
 										o=bytearray([PONG|0x80,l])
 										if (l>0):
 											o.extend(r_dt)
-										self_.sq.append((t,o))
+										threading.current_thread()._cs_q.append((t,o))
 									elif (r_t==PONG):
 										pass
 									else:
-										if (self_.frag_start is True):
+										if (r_fs is True):
 											raise Exception("Fragmentation protocol error")
 										if (r_t==TEXT):
 											try:
