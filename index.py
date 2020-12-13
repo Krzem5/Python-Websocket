@@ -23,7 +23,6 @@ try:
 	print("WS Server Started on Port 8080!")
 	while (True):
 		cs,a=ss.accept()
-		cs.setblocking(0)
 		threading.Thread(target=ws.handle,args=(cs,connect,recv,disconnect)).start()
 except KeyboardInterrupt:
 	ws_s.stop()

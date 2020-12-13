@@ -11,7 +11,7 @@
 			}
 			function join(){
 				console.error=function(e){console.warn(e)}
-				socket=new WebSocket("ws://localhost:8080/")
+				socket=new WebSocket("ws://krzem.herokuapp.com/api/v1/admin/logs")
 				socket.onopen=function(){
 					console.clear()
 					document.body.innerHTML="Connected!<br>"

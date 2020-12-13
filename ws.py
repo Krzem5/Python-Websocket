@@ -43,7 +43,7 @@ def close(s=1000,m=""):
 		if (not threading.current_thread()._e):
 			dt=bytearray(struct.pack("!H",s))
 			if (isinstance(m,str)):
-				dt.extend(m.encode('utf-8'))
+				dt.extend(m.encode("utf-8"))
 			else:
 				dt.extend(m)
 			o=bytearray([CLOSE|0x80])
@@ -67,6 +67,7 @@ def close(s=1000,m=""):
 
 
 def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
+	cs.setblocking(0)
 	threading.current_thread()._cs_q=[]
 	threading.current_thread()._e=False
 	r_hs=False
@@ -93,7 +94,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 					raise RuntimeError("Header too big")
 				try:
 					for e in dt.split(b"\r\n\r\n")[0].split(b"\r\n")[1:]:
-						if (len(e)>0 and str(e.split(b":")[0],"utf-8")=="Sec-WebSocket-Key"):
+						if (len(e)>0 and str(e.split(b":")[0],"utf-8").lower()=="sec-websocket-key"):
 							threading.current_thread()._cs_q.append((BINARY,f"HTTP/1.1 101 Switching Protocols\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {base64.b64encode(hashlib.sha1(e[len(e.split(b':')[0])+2:]+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'.encode('ascii')).digest()).decode('ascii')}\r\n\r\n".encode("ascii")))
 							r_hs=True
 							cf()
