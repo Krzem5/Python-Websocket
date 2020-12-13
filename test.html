@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Simple WebSocket chat</title>
+		<script type="text/javascript">
+			var pr,chat,socket
+			function init(){
+				pr=document.querySelectorAll(".wr")[0]
+				chat=document.querySelectorAll(".chat")[0]
+				join()
+			}
+			function join(){
+				console.error=function(e){console.warn(e)}
+				socket=new WebSocket("ws://localhost:8080/")
+				socket.onopen=function(){
+					console.clear()
+					document.body.innerHTML="Connected!<br>"
+					setTimeout(()=>socket.send("AbCdEf\x02GhIj"),0)
+				}
+				socket.onclose=function(){
+					document.body.innerHTML="Disconnected:(\nRejoining."
+					join()
+				}
+				socket.onmessage=function(e){
+					document.body.innerHTML+="<br>"+e.data
+				}
+				socket.onerror=function(e){
+					e.stopImmediatePropagation()
+					e.stopPropagation()
+					e.preventDefault()
+				}
+			}
+			document.addEventListener("DOMContentLoaded",init)
+		</script>
+		<style type="text/css">
+			body {
+				font-family: consolas;
+				font-size: 30px;
+			}
+		</style>
+	</head>
+	<body>
+	</body>
+</html>
