@@ -3,17 +3,15 @@
 	<head>
 		<title>Simple WebSocket chat</title>
 		<script type="text/javascript">
-			var pr,chat,socket
+			var socket;
 			function init(){
-				pr=document.querySelectorAll(".wr")[0]
-				chat=document.querySelectorAll(".chat")[0]
-				join()
+				join();
 			}
 			function join(){
-				console.error=function(e){console.warn(e)}
-				socket=new WebSocket("ws://krzem.herokuapp.com/api/v1/admin/logs")
+				console.error=console.warn;
+				socket=new WebSocket("ws://krzem.herokuapp.com/api/v1/admin/logs");
 				socket.onopen=function(){
-					console.clear()
+					console.clear();
 					document.body.innerHTML="Connected!<br>"
 					setTimeout(()=>socket.send("AbCdEf\x02GhIj"),0)
 				}

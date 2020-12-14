@@ -18,7 +18,7 @@ PONG=0xa
 
 
 
-def send(dt):
+def send(dt,thr=threading.current_thread()):
 	t=(TEXT if isinstance(dt,str) else BINARY)
 	o=bytearray([t|0x80])
 	if (isinstance(dt,str)):
@@ -34,7 +34,9 @@ def send(dt):
 		o.extend(struct.pack("!Q",l))
 	if (l>0):
 		o.extend(dt)
-	threading.current_thread()._cs_q.append((t,o))
+	threading.current_thread()._tl.acquire()
+	thr._cs_q.append((t,o))
+	threading.current_thread()._tl.release()
 
 
 
@@ -66,10 +68,11 @@ def close(s=1000,m=""):
 
 
 
-def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
+def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 	cs.setblocking(0)
 	threading.current_thread()._cs_q=[]
 	threading.current_thread()._e=False
+	threading.current_thread()._tl=threading.Lock()
 	r_hs=False
 	r_f=0
 	r_t=0
@@ -87,9 +90,9 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 	while (not threading.current_thread()._e):
 		try:
 			if (r_hs is False):
-				dt=(h if h else cs.recv(65535))
+				dt=(h_dt if h_dt else cs.recv(65535))
 				if (not dt):
-					raise RuntimeError("Remote socket closed")
+					return
 				if (b"\r\n\r\n" not in dt):
 					raise RuntimeError("Header too big")
 				try:
@@ -102,6 +105,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 					if (r_hs==False):
 						raise KeyError
 				except Exception as e:
+					traceback.print_exception(None,e,e.__traceback__)
 					dt="HTTP/1.1 426 Upgrade Required\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nContent-Type: text/plain\r\n\r\nThis service requires use of the WebSocket protocol\r\n".encode("ascii")
 					i=0
 					l=len(dt)
@@ -109,7 +113,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 						try:
 							j=cs.send(dt[i:])
 							if (j==0):
-								raise RuntimeError("Socket connection broken")
+								return
 							i+=j
 						except socket.error as e:
 							if (e.errno in [errno.EAGAIN,errno.EWOULDBLOCK]):
@@ -122,7 +126,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 				try:
 					dt=cs.recv(16384)
 					if (not dt):
-						raise RuntimeError("Remote socket closed")
+						return
 					for b in dt:
 						h_dt=False
 						if (r_s==0):
@@ -135,8 +139,8 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 							if (rsv!=0):
 								raise RuntimeError("RSV bit must be 0")
 						elif (r_s==1):
-							if r_t==PING and length>125:
-								 raise RuntimeError("Ping packet is too large")
+							if (r_t==PING and length>125):
+								raise RuntimeError("Ping packet is too large")
 							r_m=(True if b&0x80==128 else False)
 							l=b&0x7F
 							if (l<=125):
@@ -300,7 +304,9 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 					pass
 			b=False
 			while (len(threading.current_thread()._cs_q)>0):
+				threading.current_thread()._tl.acquire()
 				(t,dt),threading.current_thread()._cs_q=threading.current_thread()._cs_q[0],threading.current_thread()._cs_q[1:]
+				threading.current_thread()._tl.release()
 				r=None
 				l=len(dt)
 				i=0
@@ -308,7 +314,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 					try:
 						j=cs.send(dt[i:])
 						if (j==0):
-							raise RuntimeError("Socket connection broken")
+							return
 						i+=j
 					except socket.error as e:
 						if (e.errno in [errno.EAGAIN,errno.EWOULDBLOCK]):
@@ -317,7 +323,9 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h=None):
 						else:
 							raise e
 				if (r is not None):
+					threading.current_thread()._tl.acquire()
 					threading.current_thread()._cs_q=[(t,r)]+threading.current_thread()._cs_q
+					threading.current_thread()._tl.release()
 					break
 				elif (t==CLOSE):
 					b=True
