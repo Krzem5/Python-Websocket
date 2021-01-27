@@ -25,4 +25,4 @@ try:
 		cs,a=ss.accept()
 		threading.Thread(target=ws.handle,args=(cs,connect,recv,disconnect)).start()
 except KeyboardInterrupt:
-	ws_s.stop()
+	ss.stop()
