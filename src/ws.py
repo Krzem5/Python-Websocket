@@ -128,7 +128,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 					if (not dt):
 						return
 					for b in dt:
-						h_dt=False
+						ok=False
 						if (r_s==0):
 							r_f,rsv,r_t=b&0x80,b&0x70,b&0x0f
 							r_s=1
@@ -150,7 +150,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 									r_s=4
 								else:
 									if (r_l<=0):
-										h_dt=True
+										ok=True
 									else:
 										r_dt=bytearray()
 										r_s=5
@@ -171,7 +171,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 									r_s=4
 								else:
 									if (r_l<=0):
-										h_dt=True
+										ok=True
 									else:
 										r_dt=bytearray()
 										r_s=5
@@ -186,7 +186,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 									r_s=4
 								else:
 									if (r_l<=0):
-										h_dt=True
+										ok=True
 									else:
 										r_dt=bytearray()
 										r_s=5
@@ -196,7 +196,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 								raise RuntimeError("Mask exceeded allowable size")
 							if (len(r_ml)==4):
 								if (r_l<=0):
-									h_dt=True
+									ok=True
 								else:
 									r_dt=bytearray()
 									r_s=5
@@ -205,10 +205,10 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 							if (len(r_dt)>=2**25):
 								raise RuntimeError("Payload exceeded allowable size")
 							if (r_i+1==r_l):
-								h_dt=True
+								ok=True
 							else:
 								r_i+=1
-						if (h_dt):
+						if (ok):
 							try:
 								if (r_t==CLOSE or r_t==STREAM or r_t==TEXT or r_t==BINARY):
 									pass
