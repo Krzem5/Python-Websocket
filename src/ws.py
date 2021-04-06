@@ -231,7 +231,7 @@ def handle(cs,cf=lambda:None,rf=lambda dt:None,df=lambda:None,h_dt=None):
 										if (len(m)>0):
 											try:
 												m=m.decode("utf-8",errors="strict")
-											except:
+											except UnicodeDecodeError:
 												s=1002
 									else:
 										s=1002
